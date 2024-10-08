@@ -1,0 +1,13 @@
+{
+  "name": "react-express-authjs",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev:react": "pnpm --filter react dev",
+    "dev:api": "pnpm --filter api dev"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
