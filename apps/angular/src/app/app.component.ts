@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
+import { AuthService } from './auth/auth.service';
 
 @Component({
   selector: 'app-root',
@@ -79,13 +80,21 @@ export class ProtectedComponent {}
         <div
           class="bg-slate-200 max-w-xl w-full rounded-md p-4 text-slate-700 flex items-center justify-between"
         >
-          <span
+          <button
             class="bg-blue-500 text-white py-1.5 px-3 rounded-md cursor-pointer"
-            >Sign in with Google</span
+            (click)="signIn()"
           >
+            Sign in with Google
+          </button>
         </div>
       </div>
     </div>
   `,
 })
-export class SignInComponent {}
+export class SignInComponent {
+  auth = inject(AuthService);
+
+  signIn() {
+    this.auth.signIn('google').subscribe();
+  }
+}
