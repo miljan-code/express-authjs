@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, type HttpResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import type {
   ClientSafeProvider,
@@ -16,7 +16,7 @@ import { combineLatest, EMPTY, of, switchMap, type Observable } from 'rxjs';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private http = inject(HttpClient);
-  private redirect = false;
+  private redirect = true;
   private callbackUrl = 'http://localhost:4200';
   private isSupportingReturn = false;
 
@@ -41,8 +41,8 @@ export class AuthService {
   ): Observable<SignInResponse | undefined> {
     return combineLatest([this.getCsrfToken(), this.getProviders()]).pipe(
       switchMap(([{ csrfToken }, providers]) => {
-        this.callbackUrl = options?.callbackUrl ?? 'http://localhost:4200';
-        this.redirect = options?.redirect ?? true;
+        this.callbackUrl = options?.callbackUrl ?? this.callbackUrl;
+        this.redirect = options?.redirect ?? this.redirect;
 
         const baseUrl = '/api/auth';
 
@@ -72,7 +72,7 @@ export class AuthService {
             : ''
         }`;
 
-        return this.http.post<{ url: string }>(
+        return this.http.post<HttpResponse<{ url: string }>>(
           _signInUrl,
           // @ts-expect-error
           new URLSearchParams({
@@ -98,10 +98,11 @@ export class AuthService {
           return EMPTY;
         }
 
-        const error = new URL(data.url).searchParams.get('error');
+        const error = new URL(data.url ?? '').searchParams.get('error');
 
         return of({
           error,
+          // todo: edit this
           status: 200,
           ok: true,
           url: error ? null : data.url,
