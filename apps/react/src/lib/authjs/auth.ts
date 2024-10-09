@@ -15,23 +15,7 @@ import type {
   BuiltInProviderType,
   RedirectableProviderType,
 } from '@auth/core/providers';
-import { Session } from '@auth/core/types';
 import axios from 'axios';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type UpdateSession = (data?: any) => Promise<Session | null>;
-
-export type SessionContextValue<R extends boolean = false> = R extends true
-  ?
-      | { update: UpdateSession; data: Session; status: 'authenticated' }
-      | { update: UpdateSession; data: null; status: 'loading' }
-  :
-      | { update: UpdateSession; data: Session; status: 'authenticated' }
-      | {
-          update: UpdateSession;
-          data: null;
-          status: 'unauthenticated' | 'loading';
-        };
 
 /**
  * Returns the current Cross Site Request Forgery Token (CSRF Token)
