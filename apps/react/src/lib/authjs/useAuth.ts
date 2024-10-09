@@ -1,44 +1,25 @@
-import { useEvent } from '../../hooks/useEvent';
-import { getSession, signIn, signOut } from './auth';
-import type { SignInResponse } from './types';
-import { BuiltInProviderType } from '@auth/core/providers';
+import { signIn, signOut } from './auth';
+import type { BuiltInProviderType } from '@auth/core/providers';
 
 export function useAuth() {
-  const loginWithOAuth = useEvent(
-    async (provider: BuiltInProviderType | 'custom') => {
-      let res: SignInResponse | undefined;
-      try {
-        res = await signIn(provider, {
-          redirect: false,
-        });
-        console.log('res', res);
-      } catch (err) {
-        console.error('Login failed');
-        throw err;
-      }
-
-      if (res?.error) {
-        console.error('Login failed');
-        throw new Error('Login failed');
-      }
-
-      const session = await getSession();
-      if (!session) {
-        console.error('Can not get current user info');
-        throw new Error('Login failed, ');
-      }
-
-      return session;
+  const loginWithOAuth = async (provider: BuiltInProviderType | 'custom') => {
+    try {
+      await signIn(provider, {
+        redirect: false,
+      });
+    } catch (err) {
+      console.error('Login failed');
+      throw err;
     }
-  );
+  };
 
-  const logout = useEvent(async () => {
+  const logout = async () => {
     await signOut({
       redirect: false,
     });
 
-    window.location.href = '/login'; // not good, need to invest to find better way.
-  });
+    window.location.href = '/signin'; // not good, need to invest to find better way.
+  };
 
   return {
     loginWithOAuth,
