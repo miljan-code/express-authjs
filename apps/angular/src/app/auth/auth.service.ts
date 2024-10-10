@@ -6,19 +6,43 @@ import type {
   SignInAuthorizationParams,
   SignInOptions,
   SignInResponse,
+  SignOutParams,
+  SignOutResponse,
 } from './types';
 import type {
   BuiltInProviderType,
   RedirectableProviderType,
 } from '@auth/core/providers';
-import { combineLatest, EMPTY, of, switchMap, type Observable } from 'rxjs';
+import {
+  BehaviorSubject,
+  combineLatest,
+  EMPTY,
+  of,
+  switchMap,
+  type Observable,
+} from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
+type UserInfo = {
+  user: {
+    email?: string;
+  };
+  expires: string;
+};
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private http = inject(HttpClient);
-  private redirect = true;
-  private callbackUrl = 'http://localhost:4200';
-  private isSupportingReturn = false;
+
+  public session$ = new BehaviorSubject<UserInfo | null>(null);
+
+  constructor() {
+    this.getSession()
+      .pipe(takeUntilDestroyed())
+      .subscribe((session) => {
+        this.session$.next(session);
+      });
+  }
 
   private getCsrfToken() {
     return this.http.get<{ csrfToken: string }>('/api/auth/csrf');
@@ -39,13 +63,13 @@ export class AuthService {
     options?: SignInOptions,
     authorizationParams?: SignInAuthorizationParams
   ): Observable<SignInResponse | undefined> {
+    const baseUrl = '/api/auth';
+    let redirect = options?.redirect ?? true;
+    let callbackUrl = options?.callbackUrl ?? 'http://localhost:4200';
+    let isSupportingReturn = false;
+
     return combineLatest([this.getCsrfToken(), this.getProviders()]).pipe(
       switchMap(([{ csrfToken }, providers]) => {
-        this.callbackUrl = options?.callbackUrl ?? this.callbackUrl;
-        this.redirect = options?.redirect ?? this.redirect;
-
-        const baseUrl = '/api/auth';
-
         if (!providers) {
           window.location.href = `${baseUrl}/error`;
           return EMPTY;
@@ -53,14 +77,14 @@ export class AuthService {
 
         if (!provider || !(provider in providers)) {
           window.location.href = `${baseUrl}/signin?${new URLSearchParams({
-            callbackUrl: this.callbackUrl,
+            callbackUrl,
           })}`;
           return EMPTY;
         }
 
         const isCredentials = providers[provider].type === 'credentials';
         const isEmail = providers[provider].type === 'email';
-        this.isSupportingReturn = isCredentials || isEmail;
+        isSupportingReturn = isCredentials || isEmail;
 
         const signInUrl = `${baseUrl}/${
           isCredentials ? 'callback' : 'signin'
@@ -78,7 +102,7 @@ export class AuthService {
           new URLSearchParams({
             ...options,
             csrfToken,
-            callbackUrl: this.callbackUrl,
+            callbackUrl,
             json: true,
           }),
           {
@@ -89,25 +113,66 @@ export class AuthService {
           }
         );
       }),
-      switchMap((data) => {
-        if (this.redirect || !this.isSupportingReturn) {
-          const url = data.url ?? this.callbackUrl;
+      switchMap((res) => {
+        if (redirect || !isSupportingReturn) {
+          const url = res.url ?? callbackUrl;
           window.location.href = url;
           // If url contains a hash, the browser does not reload the page. We reload manually
           if (url.includes('#')) window.location.reload();
           return EMPTY;
         }
 
-        const error = new URL(data.url ?? '').searchParams.get('error');
+        const error = new URL(res.url ?? '').searchParams.get('error');
 
         return of({
           error,
-          // todo: edit this
-          status: 200,
-          ok: true,
-          url: error ? null : data.url,
+          status: res.status,
+          ok: res.ok,
+          url: error ? null : res.url,
         });
       })
     );
+  }
+
+  public signOut<R extends boolean = true>(
+    options?: SignOutParams<R>
+  ): Observable<R extends true ? undefined : SignOutResponse> {
+    const callbackUrl = window.location.href;
+    const baseUrl = '/api/auth';
+
+    return this.getCsrfToken().pipe(
+      switchMap(({ csrfToken }) => {
+        return this.http.post<HttpResponse<any>>(
+          `${baseUrl}/signout`,
+          // @ts-expect-error
+          new URLSearchParams({
+            csrfToken,
+            callbackUrl,
+            json: true,
+          }),
+          {
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'X-Auth-Return-Redirect': '1',
+            },
+          }
+        );
+      }),
+      switchMap((res) => {
+        if (options?.redirect ?? true) {
+          const url = res.url ?? callbackUrl;
+          window.location.href = url;
+          // If url contains a hash, the browser does not reload the page. We reload manually
+          if (url.includes('#')) window.location.reload();
+          return EMPTY;
+        }
+
+        return of(res.body);
+      })
+    );
+  }
+
+  private getSession(): Observable<UserInfo | null> {
+    return this.http.get<UserInfo | null>('/api/auth/session');
   }
 }

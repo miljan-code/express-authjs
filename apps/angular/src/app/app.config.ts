@@ -1,6 +1,7 @@
 import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
+import { hasAccess } from './auth/auth.guard';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -19,6 +20,7 @@ export const appConfig: ApplicationConfig = {
           },
           {
             path: 'protected',
+            canActivate: [hasAccess()],
             loadComponent: () =>
               import('./app.component').then((c) => c.ProtectedComponent),
           },

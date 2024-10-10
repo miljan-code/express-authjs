@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { AuthService } from './auth/auth.service';
+import { AsyncPipe } from '@angular/common';
 
 @Component({
   selector: 'app-root',
@@ -13,18 +14,28 @@ export class AppComponent {}
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink],
+  imports: [RouterOutlet, RouterLink, AsyncPipe],
   template: `
     <header class="py-4 flex flex-col items-center [&>*]:max-w-xl [&>*]:w-full">
       <div
         class="bg-slate-200 rounded-md p-4 text-slate-700 flex items-center justify-between"
       >
+        @if (auth.session$ | async; as session) {
+        <span>{{ session.user.email }}</span>
+        <button
+          (click)="signOut()"
+          class="bg-blue-500 text-white py-1.5 px-3 rounded-md"
+        >
+          Sign out
+        </button>
+        } @else {
         <span>You are not logged in</span>
         <a
           routerLink="/signin"
           class="bg-blue-500 text-white py-1.5 px-3 rounded-md"
           >Sign in</a
         >
+        }
       </div>
       <nav
         class="p-4 flex items-center gap-2 [&>*]:underline [&>*]:underline-offset-2"
@@ -36,7 +47,13 @@ export class AppComponent {}
     <router-outlet />
   `,
 })
-export class LayoutComponent {}
+export class LayoutComponent {
+  public auth = inject(AuthService);
+
+  signOut() {
+    this.auth.signOut().subscribe();
+  }
+}
 
 @Component({
   selector: 'app-index',
@@ -92,7 +109,7 @@ export class ProtectedComponent {}
   `,
 })
 export class SignInComponent {
-  auth = inject(AuthService);
+  private auth = inject(AuthService);
 
   signIn() {
     this.auth.signIn('google').subscribe();
