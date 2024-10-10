@@ -96,7 +96,7 @@ export class AuthService {
             : ''
         }`;
 
-        return this.http.post<HttpResponse<{ url: string }>>(
+        return this.http.post<HttpResponse<SignInResponse>>(
           _signInUrl,
           // @ts-expect-error
           new URLSearchParams({
@@ -134,15 +134,15 @@ export class AuthService {
     );
   }
 
-  public signOut<R extends boolean = true>(
+  public signOut<R extends boolean>(
     options?: SignOutParams<R>
-  ): Observable<R extends true ? undefined : SignOutResponse> {
+  ): Observable<SignOutResponse | null> {
     const callbackUrl = window.location.href;
     const baseUrl = '/api/auth';
 
     return this.getCsrfToken().pipe(
       switchMap(({ csrfToken }) => {
-        return this.http.post<HttpResponse<any>>(
+        return this.http.post<HttpResponse<SignOutResponse>>(
           `${baseUrl}/signout`,
           // @ts-expect-error
           new URLSearchParams({
