@@ -1,7 +1,5 @@
-// @ts-nocheck
 import express, { type Request, type Response } from "express"
 import logger from "morgan"
-import * as path from "node:path"
 import {
   errorHandler,
   errorNotFoundHandler,
@@ -24,11 +22,6 @@ app.set("trust proxy", true)
 
 app.use(logger("dev"))
 
-// Serve static files
-// NB: Uncomment this out if you want Express to serve static files for you vs. using a
-// hosting provider which does so for you (for example through a CDN).
-app.use(express.static(path.join(import.meta.dirname, "..", "public")))
-
 // Parse incoming requests data
 app.use(express.urlencoded({ extended: true }))
 app.use(express.json())
@@ -45,7 +38,7 @@ app.get(
   authenticatedUser,
   async (_req: Request, res: Response) => {
     res.json(res.locals.session)
-  },
+  }
 )
 
 app.get("/", async (_req: Request, res: Response) => {
