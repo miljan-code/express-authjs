@@ -12,7 +12,7 @@
     "build": "tsc",
     "dev": "tsx watch --env-file=.env src/server.ts",
     "lint": "eslint src/*.ts --fix",
-    "prettier": "prettier src/*.ts --write"
+    "prettier": "prettier src/**/*.ts --write"
   },
   "keywords": [],
   "author": "",
